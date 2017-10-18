@@ -1,10 +1,20 @@
 from flask import request
 
 from util.help import create_tocken, set_cookie
-from util.redisConnect import redis
+from util.redis_connect import redis
+
+import time
 
 
 class Auth:
+
+    # 登录用户信息更新
+    def update_token(self, token, user, item=None):
+        timestamp = time.time()
+        redis.hset('login:', token, user)
+        redis.zadd('recent:', token, timestamp)
+
+    # 获取登录用户信息
     def index(self, token):
         result = {}
 
@@ -12,10 +22,14 @@ class Auth:
         name = redis.hget('login:', token)
         if name:
             result['name'] = str(name, encoding = "utf-8")
+
+            # 通过验证后更新token信息
+            self.update_token(token, name)
         else:
             result['error'] = 'token错误'
         return result
 
+    # 创建token
     def create(self):
         result = {}
 
